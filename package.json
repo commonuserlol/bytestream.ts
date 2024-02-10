@@ -1,0 +1,22 @@
+{
+  "name": "bytestream.ts",
+  "version": "1.0.0",
+  "description": "Module for easy reading/writing bytes using TypeScript",
+  "exports": "./dist/index.js",
+  "module": "dist/index.js",
+  "main": "dist/index.js",
+  "type": "module",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/commonuserlol/bytestream.ts.git"
+  },
+  "scripts": {
+    "prepare": "tsc"
+  },
+  "author": "commonuserlol",
+  "license": "WTFPL"
+}
