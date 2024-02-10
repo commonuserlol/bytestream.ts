@@ -1,18 +1,24 @@
 type EndianType = "big" | "little";
 
 export class ByteStream {
+    /** @internal */
     private dataView: DataView;
+    /** @internal */
     private isLittleEndian: boolean;
+    /** @internal */
     private offset: number;
+    /** @internal */
+    private reservedSpace: number
 
     /**
      * Creates an instance of ByteStream.
      *
      * @constructor
-     * @param {number} size size of `ArrayBuffer` to allocate
-     * @param {EndianType} endian
+     * @param {number} size
+     * @param {EndianType} endian size of `ArrayBuffer` to allocate
+     * @param {?number} [reservedSpace] space to reserve when reallocating
      */
-    constructor(size: number, endian: EndianType);
+    constructor(size: number, endian: EndianType, reservedSpace?: number);
     /**
      * Creates an instance of ByteStream.
      *
@@ -31,7 +37,7 @@ export class ByteStream {
     constructor(u8array: Uint8Array, endian: EndianType);
 
     /** @internal */
-    constructor(sizeOrArray: number | ArrayBuffer | Uint8Array, endian: EndianType = "big") {
+    constructor(sizeOrArray: number | ArrayBuffer | Uint8Array, endian: EndianType, reservedSpace: number = 32) {
         const isNumber = typeof sizeOrArray == "number";
         const isArrayBuffer = sizeOrArray instanceof ArrayBuffer;
 
@@ -43,6 +49,7 @@ export class ByteStream {
                 
         this.isLittleEndian = endian == "little";
         this.offset = 0;
+        this.reservedSpace = reservedSpace;
     }
 
     /**
@@ -60,7 +67,7 @@ export class ByteStream {
      * @returns {number}
      */
     readS8(): number {
-        if (this.offset >= this.dataView.buffer.byteLength)
+        if (this.offset >= this.dataView.byteLength)
             return 0;
 
 
@@ -73,7 +80,7 @@ export class ByteStream {
      * @returns {number}
      */
     readU16(): number {
-        if (this.offset + 1 >= this.dataView.buffer.byteLength) 
+        if (this.offset + 1 >= this.dataView.byteLength) 
             return 0;
 
         const value = this.dataView.getUint16(this.offset, this.isLittleEndian);
@@ -87,7 +94,7 @@ export class ByteStream {
      * @returns {number}
      */
     readS16(): number {
-        if (this.offset + 1 >= this.dataView.buffer.byteLength)
+        if (this.offset + 1 >= this.dataView.byteLength)
             return 0;
 
         const value = this.dataView.getInt16(this.offset, this.isLittleEndian);
@@ -101,7 +108,7 @@ export class ByteStream {
      * @returns {number}
      */
     readU32(): number {
-        if (this.offset + 3 >= this.dataView.buffer.byteLength)
+        if (this.offset + 3 >= this.dataView.byteLength)
             return 0;
 
         const value = this.dataView.getUint32(this.offset, this.isLittleEndian);
@@ -115,7 +122,7 @@ export class ByteStream {
      * @returns {number}
      */
     readS32(): number {
-        if (this.offset + 3 >= this.dataView.buffer.byteLength)
+        if (this.offset + 3 >= this.dataView.byteLength)
             return 0;
 
         const value = this.dataView.getInt32(this.offset, this.isLittleEndian);
@@ -129,7 +136,7 @@ export class ByteStream {
      * @returns {bigint}
      */
     readU64(): bigint {
-        if (this.offset + 7 > this.dataView.buffer.byteLength)
+        if (this.offset + 7 > this.dataView.byteLength)
             return 0n;
 
         const value = this.dataView.getBigUint64(this.offset, this.isLittleEndian);
@@ -143,7 +150,7 @@ export class ByteStream {
      * @returns {bigint}
      */
     readS64(): bigint {
-        if (this.offset + 7 > this.dataView.buffer.byteLength)
+        if (this.offset + 7 > this.dataView.byteLength)
             return 0n;
 
         const value = this.dataView.getBigInt64(this.offset, this.isLittleEndian);
@@ -172,8 +179,7 @@ export class ByteStream {
      * @param {number} value
      */
     writeU8(value: number) {
-        if (this.offset >= this.dataView.buffer.byteLength)
-            throw new Error("Failed to write data because there is not enough space, please specify more space in the constructor");
+        this.ensureCapacity(1);
 
         this.dataView.setUint8(this.offset++, value);
     }
@@ -184,8 +190,7 @@ export class ByteStream {
      * @param {number} value
      */
     writeS8(value: number) {
-        if (this.offset >= this.dataView.buffer.byteLength)
-            throw new Error("Failed to write data because there is not enough space, please specify more space in the constructor");
+        this.ensureCapacity(1);
 
         this.dataView.setInt8(this.offset++, value);
     }
@@ -196,8 +201,7 @@ export class ByteStream {
      * @param {number} value
      */
     writeU16(value: number) {
-        if (this.offset + 1 > this.dataView.buffer.byteLength)
-            throw new Error("Failed to write data because there is not enough space, please specify more space in the constructor");
+        this.ensureCapacity(2);
 
         this.dataView.setUint16(this.offset, value);
         this.offset += 2;
@@ -209,8 +213,7 @@ export class ByteStream {
      * @param {number} value
      */
     writeS16(value: number) {
-        if (this.offset + 1 > this.dataView.buffer.byteLength)
-            throw new Error("Failed to write data because there is not enough space, please specify more space in the constructor");
+        this.ensureCapacity(2);
 
         this.dataView.setInt16(this.offset, value);
         this.offset += 2;
@@ -222,8 +225,7 @@ export class ByteStream {
      * @param {number} value
      */
     writeU32(value: number) {
-        if (this.offset + 3 > this.dataView.buffer.byteLength)
-            throw new Error("Failed to write data because there is not enough space, please specify more space in the constructor");
+        this.ensureCapacity(4);
 
         this.dataView.setUint32(this.offset, value);
         this.offset += 4;
@@ -235,8 +237,7 @@ export class ByteStream {
      * @param {number} value
      */
     writeS32(value: number) {
-        if (this.offset + 3 > this.dataView.buffer.byteLength)
-            throw new Error("Failed to write data because there is not enough space, please specify more space in the constructor");
+        this.ensureCapacity(4);
 
         this.dataView.setInt32(this.offset, value);
         this.offset += 4;
@@ -248,8 +249,7 @@ export class ByteStream {
      * @param {bigint} value
      */
     writeU64(value: bigint) {
-        if (this.offset + 7 > this.dataView.buffer.byteLength)
-            throw new Error("Failed to write data because there is not enough space, please specify more space in the constructor");
+        this.ensureCapacity(8);
 
         this.dataView.setBigUint64(this.offset, value);
         this.offset += 8;
@@ -261,8 +261,7 @@ export class ByteStream {
      * @param {bigint} value
      */
     writeS64(value: bigint) {
-        if (this.offset + 7 > this.dataView.buffer.byteLength)
-            throw new Error("Failed to write data because there is not enough space, please specify more space in the constructor");
+        this.ensureCapacity(8);
 
         this.dataView.setBigInt64(this.offset, value);
         this.offset += 8;
@@ -290,13 +289,11 @@ export class ByteStream {
     /** @internal */
     writeBytes(value: number[] | ArrayBuffer | Uint8Array) {
         const isArrayBuffer = value instanceof ArrayBuffer;
-        
-        const temp = new Uint8Array(this.dataView.buffer);
         const valueAsU8Array = isArrayBuffer ? new Uint8Array(value) : value;
 
-        if (this.offset + valueAsU8Array.length > this.dataView.byteLength)
-            throw new Error("Failed to write data because there is not enough space, please specify more space in the constructor");
+        this.ensureCapacity(valueAsU8Array.length);
 
+        const temp = new Uint8Array(this.dataView.buffer);
         temp.set(valueAsU8Array, this.offset);
         this.offset += valueAsU8Array.length;
     }
@@ -304,5 +301,15 @@ export class ByteStream {
     /** Resets offset */
     reset() {
         this.offset = 0;
+    }
+
+    ensureCapacity(n: number) {
+        if (this.offset + n <= this.dataView.byteLength)
+            return;
+
+        const oldBuffer = new Uint8Array(this.dataView.buffer);
+        this.dataView = new DataView(new ArrayBuffer(oldBuffer.length + this.reservedSpace));
+        const temp = new Uint8Array(this.dataView.buffer);
+        temp.set(oldBuffer);
     }
 }
