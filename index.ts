@@ -312,4 +312,12 @@ export class ByteStream {
         const temp = new Uint8Array(this.dataView.buffer);
         temp.set(oldBuffer);
     }
+
+    get byteArray(): ArrayBuffer {
+        return this.dataView.buffer;
+    }
+
+    set byteArray(array: ArrayBuffer) {
+        this.dataView = new DataView(array);
+    }
 }
