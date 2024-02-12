@@ -1,6 +1,6 @@
 type EndianType = "big" | "little";
 
-export class ByteStream {
+export default class ByteStream {
     /** @internal */
     private dataView: DataView;
     /** @internal */
@@ -303,6 +303,7 @@ export class ByteStream {
         this.offset = 0;
     }
 
+    /** @internal */
     ensureCapacity(n: number) {
         if (this.offset + n <= this.dataView.byteLength)
             return;
@@ -312,11 +313,17 @@ export class ByteStream {
         const temp = new Uint8Array(this.dataView.buffer);
         temp.set(oldBuffer);
     }
-
+    
+    /**
+     * Gets current byte array
+     *
+     * @type {ArrayBuffer}
+     */
     get byteArray(): ArrayBuffer {
         return this.dataView.buffer;
     }
 
+    /** Sets new byte array */
     set byteArray(array: ArrayBuffer) {
         this.dataView = new DataView(array);
     }
