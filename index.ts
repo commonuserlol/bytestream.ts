@@ -309,7 +309,7 @@ export default class ByteStream {
             return;
 
         const oldBuffer = new Uint8Array(this.dataView.buffer);
-        this.dataView = new DataView(new ArrayBuffer(oldBuffer.length + this.reservedSpace));
+        this.dataView = new DataView(new ArrayBuffer(oldBuffer.length + n + this.reservedSpace));
         const temp = new Uint8Array(this.dataView.buffer);
         temp.set(oldBuffer);
     }
